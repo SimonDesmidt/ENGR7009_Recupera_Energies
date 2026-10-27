@@ -1,0 +1,359 @@
+.heat-diagram {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) 160px minmax(250px, 1fr);
+  grid-template-rows: auto 100px auto;
+  grid-template-areas:
+    "refrigeration heat-arrow exchanger"
+    ".             .          green-arrow"
+    "storage       optional   heat-pump";
+  align-items: center;
+  gap: 20px;
+
+  width: 100%;
+  padding: 45px 20px;
+
+  background: #f7faf9;
+  border-radius: 16px;
+}
+
+/* COMPONENTS */
+
+.heat-component {
+  position: relative;
+
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 300px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 22px 12px;
+
+  background: #ffffff;
+  border: 2px solid #dce7e5;
+  border-radius: 14px;
+
+  text-align: center;
+}
+
+.heat-component h3 {
+  margin: 12px 0 6px;
+
+  color: #102b34;
+
+  font-size: 16px;
+}
+
+.refrigeration-image {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  max-height: 180px;
+  height: auto;
+  margin: 15px auto;
+
+  object-fit: contain;
+}
+
+.heat-red,
+.heat-green {
+  margin: 5px 0;
+
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* GRID POSITIONS */
+
+.refrigeration {
+  grid-area: refrigeration;
+  border-color: #e5a3a3;
+}
+
+.exchanger {
+  grid-area: exchanger;
+  border-color: #21b79a;
+}
+
+.heat-pump {
+  grid-area: heat-pump;
+
+  background: #f2f6f6;
+  border: 2px dashed #8da5aa;
+}
+
+.storage {
+  grid-area: storage;
+  border-color: #21b79a;
+}
+
+/* COMPONENT TEXT */
+
+.heat-red {
+  color: #d62828;
+}
+
+.heat-green {
+  color: #168e78;
+}
+
+.optional-label {
+  position: absolute;
+  top: -13px;
+
+  padding: 5px 12px;
+
+  color: #ffffff;
+  background: #102b34;
+  border-radius: 20px;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* HOT-REFRIGERANT ARROW: POINTS RIGHT */
+
+.heat-arrow {
+  grid-area: heat-arrow;
+
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.heat-arrow-label {
+  color: #d62828;
+
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.heat-arrow-line {
+  position: relative;
+
+  width: 100%;
+  height: 3px;
+
+  background: #d62828;
+}
+
+.heat-arrow-line::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+
+  width: 10px;
+  height: 10px;
+
+  content: "";
+
+  border-top: 3px solid #d62828;
+  border-right: 3px solid #d62828;
+
+  transform: translateY(-50%) rotate(45deg);
+}
+
+/* HOT-WATER ARROW: POINTS DOWN */
+
+.green-arrow {
+  grid-area: green-arrow;
+
+  display: flex;
+  height: 100%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.green-arrow-label {
+  max-width: 70px;
+
+  color: #168e78;
+
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.green-arrow-line {
+  position: relative;
+
+  width: 3px;
+  height: 100%;
+
+  background: #168e78;
+}
+
+.green-arrow-line::after {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+
+  width: 10px;
+  height: 10px;
+
+  content: "";
+
+  border-right: 3px solid #168e78;
+  border-bottom: 3px solid #168e78;
+
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* OPTIONAL ARROW: POINTS LEFT */
+
+.optional-arrow {
+  grid-area: optional;
+
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.optional-arrow-label {
+  color: #8da5aa;
+
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.optional-arrow-line {
+  position: relative;
+
+  width: 100%;
+  height: 0;
+
+  border-top: 3px dashed #8da5aa;
+}
+
+.optional-arrow-line::after {
+  position: absolute;
+  top: 50%;
+  left: 0;
+
+  width: 10px;
+  height: 10px;
+
+  content: "";
+
+  border-bottom: 3px solid #8da5aa;
+  border-left: 3px solid #8da5aa;
+
+  transform: translateY(-50%) rotate(45deg);
+}
+
+/* RESPONSIVE LAYOUT */
+
+@media (max-width: 800px) {
+  .heat-diagram {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "refrigeration"
+      "heat-arrow"
+      "exchanger"
+      "green-arrow"
+      "heat-pump"
+      "optional"
+      "storage";
+
+    gap: 18px;
+    padding: 35px 16px;
+  }
+
+  .heat-component {
+    min-height: 250px;
+  }
+
+  /* Convert every connector into a downward arrow */
+
+  .heat-arrow,
+  .green-arrow,
+  .optional-arrow {
+    display: flex;
+    width: 100%;
+    height: 90px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .heat-arrow-label,
+  .green-arrow-label,
+  .optional-arrow-label {
+    width: 100px;
+    text-align: right;
+  }
+
+  .heat-arrow-line,
+  .green-arrow-line,
+  .optional-arrow-line {
+    position: relative;
+
+    width: 3px;
+    height: 70px;
+
+    border: 0;
+  }
+
+  .heat-arrow-line {
+    background: #d62828;
+  }
+
+  .green-arrow-line {
+    background: #168e78;
+  }
+
+  .optional-arrow-line {
+    width: 0;
+
+    background: transparent;
+    border-left: 3px dashed #8da5aa;
+  }
+
+  .heat-arrow-line::after,
+  .green-arrow-line::after,
+  .optional-arrow-line::after {
+    position: absolute;
+    top: auto;
+    right: auto;
+    bottom: 0;
+    left: 50%;
+
+    width: 10px;
+    height: 10px;
+
+    content: "";
+
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  .heat-arrow-line::after {
+    border: 0;
+    border-right: 3px solid #d62828;
+    border-bottom: 3px solid #d62828;
+  }
+
+  .green-arrow-line::after {
+    border: 0;
+    border-right: 3px solid #168e78;
+    border-bottom: 3px solid #168e78;
+  }
+
+  .optional-arrow-line::after {
+    border: 0;
+    border-right: 3px solid #8da5aa;
+    border-bottom: 3px solid #8da5aa;
+  }
+}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./SavingsSimulator.css";
 
 import {
   ResponsiveContainer,
@@ -18,29 +19,11 @@ const SIMPLE_ASSUMPTIONS = {
   refrigerationHours: 8760,
 };
 
-const openingHours =
-  values.daysOpen * values.hoursPerDay * 52;
-
-const estimatedCoolingCapacity =
-  values.numberOfFridges *
-  SIMPLE_ASSUMPTIONS.coolingCapacityPerFridge;
-
-const estimatedHeatingDemand =
-  values.supermarketArea *
-  SIMPLE_ASSUMPTIONS.heatingDemandPerArea;
-
-const openingFraction = openingHours / 8760;
-
-const estimatedOverlap = Math.min(
-  85,
-  35 + 60 * openingFraction
-);
-
 const PRESETS = {
   gas: [
-    { label: "Low", value: 0.06 },
-    { label: "Medium", value: 0.09 },
-    { label: "High", value: 0.12 },
+    { label: "Low", value: 0.04 },
+    { label: "Medium", value: 0.07 },
+    { label: "High", value: 0.10 },
   ],
 
   equipment: [
@@ -67,14 +50,6 @@ const PRESETS = {
     { label: "High", value: 12 },
   ],
 };
-
-function selectEquipmentPreset(preset) {
-  setValues((previous) => ({
-    ...previous,
-    price: preset.value,
-    maintenance: preset.maintenance,
-  }));
-}
 
 function PresetButtons({
   label,
@@ -125,10 +100,19 @@ const formatNumber = (number) =>
     maximumFractionDigits: 3,
   }).format(number);
 
+const formatNumber_v2 = (number) =>
+  new Intl.NumberFormat("en-IE", {
+    maximumFractionDigits: 0,
+  }).format(number);
+
 
 const defaultValues = {
+  numberOfFridges: 32,
+  supermarketArea: 1300,
+  daysOpen: 7,
+  hoursPerDay: 12,
   capacity: 80,
-  hours: 5000,
+  hours: 8760,
   rejection: 1.15,
   capture: 65,
   overlap: 55,
@@ -139,10 +123,10 @@ const defaultValues = {
   auxHours: 3500,
   elec: 0.22,
   penalty: 0,
-  price: 30000,
+  price: 45000,
   years: 5,
   rate: 8,
-  maintenance: 100,
+  maintenance: 110,
 };
 
 
@@ -207,14 +191,64 @@ export default function SavingsSimulator() {
     setValues(defaultValues);
   };
 
+  const selectEquipmentPreset = (preset) => {
+    setValues((previousValues) => ({
+      ...previousValues,
+      price: preset.value,
+      maintenance: preset.maintenance,
+    }));
+  };
+
+  const openingHours =
+    values.daysOpen *
+    values.hoursPerDay *
+    52;
+
+  const openingFraction =
+    openingHours /
+    SIMPLE_ASSUMPTIONS.refrigerationHours;
+
+  const estimatedCoolingCapacity =
+    values.numberOfFridges *
+    SIMPLE_ASSUMPTIONS.coolingCapacityPerFridge;
+
+  const estimatedHeatingDemand =
+    values.supermarketArea *
+    SIMPLE_ASSUMPTIONS.heatingDemandPerArea;
+
+  const estimatedOverlap = Math.min(
+    85,
+    35 + 60 * openingFraction,
+  );
+
+  const coolingCapacity =
+    mode === "simple"
+      ? estimatedCoolingCapacity
+      : values.capacity;
+
+  const refrigerationHours =
+    mode === "simple"
+      ? SIMPLE_ASSUMPTIONS.refrigerationHours
+      : values.hours;
+
+  const heatingDemand =
+    mode === "simple"
+      ? estimatedHeatingDemand
+      : values.heatingDemand;
+
+  const demandOverlap =
+    mode === "simple"
+      ? estimatedOverlap
+      : values.overlap;
+
   /*
    * Average heat rejection is estimated from the input cooling capacity,
    * not from the compressor electrical input.
    */
   const availableHeat =
-    values.capacity *
+    coolingCapacity *
     values.rejection *
-    values.hours;
+    refrigerationHours;
 
   const capturedHeat =
     availableHeat *
@@ -223,12 +257,12 @@ export default function SavingsSimulator() {
 
   const overlappingHeat =
     capturedHeat *
-    values.overlap /
+    demandOverlap /
     100;
 
   const usefulHeat = Math.min(
     overlappingHeat,
-    values.heatingDemand,
+    heatingDemand,
   );
 
   const displacedFuel =
@@ -300,8 +334,10 @@ export default function SavingsSimulator() {
     values.maintenance -
     monthlyLeasePayment;
 
+  const chartEndYear = values.years + 3;
+
   const chartData = Array.from(
-    { length: 11 },
+    { length: chartEndYear + 1 },
     (_, year) => ({
       year,
 
@@ -333,7 +369,7 @@ export default function SavingsSimulator() {
 
         <p>
           Explore a preliminary estimate for a supermarket central
-          refrigeration system. Adjust the sliders to compare an outright
+          refrigeration system. Enter a few site details to compare an outright
           purchase with financing through a leasing partner.
         </p>
       </div>
@@ -374,52 +410,107 @@ export default function SavingsSimulator() {
         <div className="sim-inputs">
           <h3>Supermarket and heating</h3>
 
-          <Slider
-            label="Average refrigeration cooling capacity"
-            value={values.capacity}
-            onChange={setValue("capacity")}
-            min={10}
-            max={300}
-            step={5}
-            unit="kW"
-            hint="Estimated average cooling duty while operating—not electrical consumption or equipment nameplate capacity."
-          />
-
-          <Slider
-            label="Equivalent annual operating hours"
-            value={values.hours}
-            onChange={setValue("hours")}
-            min={1000}
-            max={8760}
-            step={100}
-            unit="h"
-          />
-
-          <Slider
-            label="Annual usable heating demand"
-            value={values.heatingDemand / 1000}
-            onChange={(value) => {
-              setValue("heatingDemand")(value * 1000);
-            }}
-            min={10}
-            max={1000}
-            step={10}
-            unit="MWh"
-            hint="Annual hot-water and space-heating demand that could be supplied by the recovery system."
-          />
-
-          <Slider
-            label="Gas price"
-            value={values.gas}
-            onChange={setValue("gas")}
-            min={0.0}
-            max={0.25}
-            step={0.005}
-            unit="£/kWh"
-          />
-
-          {mode === "advanced" && (
+          {mode === "simple" ? (
             <>
+              <Slider
+                label="Number of refrigerated cabinets and freezers"
+                value={values.numberOfFridges}
+                onChange={setValue("numberOfFridges")}
+                min={1}
+                max={75}
+                unit="units"
+                hint="Count refrigerated display cabinets and standalone commercial freezers."
+              />
+
+              <Slider
+                label="Supermarket floor area"
+                value={values.supermarketArea}
+                onChange={setValue("supermarketArea")}
+                min={100}
+                max={5000}
+                step={50}
+                unit="m²"
+                hint="Used to estimate annual space-heating and hot-water demand."
+              />
+
+              <Slider
+                label="Days open per week"
+                value={values.daysOpen}
+                onChange={setValue("daysOpen")}
+                min={1}
+                max={7}
+                unit="days"
+              />
+
+              <Slider
+                label="Hours open per day"
+                value={values.hoursPerDay}
+                onChange={setValue("hoursPerDay")}
+                min={1}
+                max={24}
+                unit="h"
+                hint="Opening hours estimate when recovered heat is most likely to match demand. Refrigeration is assumed to operate all year."
+              />
+
+              <div className="simple-estimates" aria-live="polite">
+                <strong>Estimated site values</strong>
+                <span>{formatNumber(estimatedCoolingCapacity)} kW cooling capacity</span>
+                <span>{formatNumber(estimatedHeatingDemand / 1000)} MWh/year heating demand</span>
+                <span>{formatNumber(estimatedOverlap)}% demand overlap</span>
+              </div>
+
+              <PresetButtons
+                label="Gas price scenario"
+                options={PRESETS.gas}
+                selectedValue={values.gas}
+                onChange={(option) => setValue("gas")(option.value)}
+                formatValue={(value) => `£${value.toFixed(2)}/kWh`}
+              />
+            </>
+          ) : (
+            <>
+              <Slider
+                label="Average refrigeration cooling capacity"
+                value={values.capacity}
+                onChange={setValue("capacity")}
+                min={10}
+                max={300}
+                step={5}
+                unit="kW"
+                hint="Estimated average cooling duty while operating—not electrical consumption or equipment nameplate capacity."
+              />
+
+              <Slider
+                label="Equivalent annual operating hours"
+                value={values.hours}
+                onChange={setValue("hours")}
+                min={1000}
+                max={8760}
+                step={100}
+                unit="h"
+              />
+
+              <Slider
+                label="Annual usable heating demand"
+                value={values.heatingDemand / 1000}
+                onChange={(value) => setValue("heatingDemand")(value * 1000)}
+                min={10}
+                max={1000}
+                step={10}
+                unit="MWh"
+                hint="Annual hot-water and space-heating demand that could be supplied by the recovery system."
+              />
+
+              <Slider
+                label="Gas price"
+                value={values.gas}
+                onChange={setValue("gas")}
+                min={0}
+                max={0.25}
+                step={0.005}
+                unit="£/kWh"
+              />
+
               <h3>Engineering assumptions</h3>
 
               <Slider
@@ -508,44 +599,79 @@ export default function SavingsSimulator() {
 
           <h3>Equipment and financing</h3>
 
-          <Slider
-            label="Installed equipment price"
-            value={values.price}
-            onChange={setValue("price")}
-            min={10000}
-            max={150000}
-            step={1000}
-            unit="£"
-          />
+          {mode === "simple" ? (
+            <>
+              <PresetButtons
+                label="Installed equipment package"
+                options={PRESETS.equipment}
+                selectedValue={values.price}
+                onChange={selectEquipmentPreset}
+                formatValue={formatMoney}
+              />
 
-          <Slider
-            label="Lease term"
-            value={values.years}
-            onChange={setValue("years")}
-            min={3}
-            max={10}
-            unit="years"
-          />
+              <p className="preset-note">
+                Estimated maintenance: {formatMoney(values.maintenance)} per month
+              </p>
 
-          <Slider
-            label="Illustrative financing rate"
-            value={values.rate}
-            onChange={setValue("rate")}
-            min={0}
-            max={16}
-            step={0.5}
-            unit="%"
-          />
+              <Slider
+                label="Lease term"
+                value={values.years}
+                onChange={setValue("years")}
+                min={1}
+                max={20}
+                unit="years"
+              />
 
-          <Slider
-            label="Monthly maintenance"
-            value={values.maintenance}
-            onChange={setValue("maintenance")}
-            min={0}
-            max={600}
-            step={10}
-            unit="£"
-          />
+              <PresetButtons
+                label="Financing rate scenario"
+                options={PRESETS.finance}
+                selectedValue={values.rate}
+                onChange={(option) => setValue("rate")(option.value)}
+                formatValue={(value) => `${value}%`}
+              />
+            </>
+          ) : (
+            <>
+              <Slider
+                label="Installed equipment price"
+                value={values.price}
+                onChange={setValue("price")}
+                min={10000}
+                max={150000}
+                step={1000}
+                unit="£"
+              />
+
+              <Slider
+                label="Lease term"
+                value={values.years}
+                onChange={setValue("years")}
+                min={3}
+                max={10}
+                unit="years"
+              />
+
+              <Slider
+                label="Illustrative financing rate"
+                value={values.rate}
+                onChange={setValue("rate")}
+                min={0}
+                max={16}
+                step={0.5}
+                unit="%"
+              />
+
+              <Slider
+                label="Monthly maintenance"
+                value={values.maintenance}
+                onChange={setValue("maintenance")}
+                min={0}
+                max={600}
+                step={10}
+                unit="£"
+              />
+            </>
+          )}
         </div>
 
         <div className="sim-results">
@@ -554,7 +680,7 @@ export default function SavingsSimulator() {
           <div className="stat-grid">
             <Stat
               label="Available waste heat"
-              value={`${formatNumber(availableHeat / 1000)} MWh`}
+              value={`${formatNumber_v2(availableHeat / 1000)} MWh`}
               sub="Before technical and demand limits"
             />
 
@@ -581,7 +707,8 @@ export default function SavingsSimulator() {
               value={
                 paybackPeriod === null
                   ? "Not achieved"
-                  : `${Math.floor(paybackPeriod + 1 / 24)} years ${Math.ceil((paybackPeriod % 1) * 12) % 12} months`              }
+                  : `${Math.floor(paybackPeriod + 1 / 24)} years ${Math.ceil((paybackPeriod % 1) * 12) % 12} months`
+              }
               sub="Net savings after electricity and maintenance"
             />
 
@@ -599,8 +726,8 @@ export default function SavingsSimulator() {
             />
 
             <Stat
-              label="10-year leasing cash flow"
-              value={formatMoney(chartData[10].Leasing)}
+              label={`${chartEndYear}-year leasing cash flow`}
+              value={formatMoney(chartData[chartEndYear].Leasing)}
               sub="Cumulative undiscounted cash flow"
             />
           </div>
@@ -693,7 +820,7 @@ export default function SavingsSimulator() {
 
             <p>
               {mode === "simple"
-                ? "Simple-mode defaults: heat rejection/cooling ratio 1.15, recoverable fraction 65%, overlap 55%, boiler efficiency 90%, auxiliary pumps 2 kW for 3,500 hours, electricity £0.22/kWh, no compressor penalty. Switch to Engineering assumptions to adjust them."
+                ? "Simple-mode assumptions: 2.5 kW average cooling duty per refrigerated cabinet, 120 kWh/m² annual heating demand and year-round refrigeration operation. Demand overlap is estimated from opening hours. Heat rejection/cooling ratio is 1.15, recoverable fraction 65%, boiler efficiency 90%, auxiliary pumps 2 kW for 3,500 hours, electricity £0.22/kWh and no compressor penalty."
                 : "Engineering assumptions are illustrative and should be replaced by measured values from a site diagnosis."}
             </p>
 
